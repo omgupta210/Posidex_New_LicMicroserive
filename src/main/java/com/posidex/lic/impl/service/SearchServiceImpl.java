@@ -56,11 +56,9 @@ import com.posidex.lic.util.ResponseJson;
 public class SearchServiceImpl implements SearchService {
 	private final static Logger logger = LoggerFactory.getLogger(SearchService.class);
 
-	
-
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
+
 	@Autowired
 	private Environment env;
 	@Autowired
@@ -68,8 +66,6 @@ public class SearchServiceImpl implements SearchService {
 
 	@Autowired
 	private psx_cluster_cross_ref_t_repoimpl psxrepo;
-
-	
 
 	@Override
 	public ResponseJson<HttpStatus, ?> getDetails(ServiceRequest request)
@@ -144,7 +140,7 @@ public class SearchServiceImpl implements SearchService {
 		System.out.println("name" + request.getName());
 		dg.setPolicyHolderName(request.getName());
 		dg.setDateOfBirth(request.getDob());
-		//logger.info(request.getPhoneNumber() + "ZXc");
+		// logger.info(request.getPhoneNumber() + "ZXc");
 		if (!(request.getPhoneNumber() == null)) {
 			if (!(request.getPhoneNumber().isEmpty())) {
 				dg.setPhone1(request.getPhoneNumber());
@@ -206,7 +202,11 @@ public class SearchServiceImpl implements SearchService {
 		CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslsf)
 				.setConnectionManager(connectionManager).build();
 
-		ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+		//ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+		try {
+			HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+			requestFactory.setConnectTimeout(1000);
+			requestFactory.setReadTimeout(1000);
 		RestTemplate restTemplate = new RestTemplate(requestFactory);
 
 		// logger.info("Sending request body to matching service: " + requestEntity);
@@ -220,7 +220,7 @@ public class SearchServiceImpl implements SearchService {
 		logger.info("Getting response body as json  from matching service: " + resJsonString);
 		// logger.info("Message from
 		// service"+messageService.getMessage("REQUEST.ERROR"));
-		if (responseEntity.getStatusMessage().equals("1055")||(responseEntity.getStatusMessage().equals("105"))) {
+		if (responseEntity.getStatusMessage().equals("1055") || (responseEntity.getStatusMessage().equals("105"))) {
 			logger.info("Message Code from matching service:" + responseEntity.getStatusMessage());
 			throw new CustomException(messageService.getMessage("message.validation"));
 		} else if (responseEntity.getStatusMessage().equals("1030")) {
@@ -246,7 +246,7 @@ public class SearchServiceImpl implements SearchService {
 		}
 		apiHeaders.add("CustomerId");
 		logger.info("matchCount" + responseEntity.getRetValue().getMatchCount());
-		if(responseEntity.getRetValue().getMatchCount() ==0) {
+		if (responseEntity.getRetValue().getMatchCount() == 0) {
 			logger.info("Message Code from matching service:" + responseEntity.getStatusMessage());
 			throw new CustomException(messageService.getMessage("message.Invalid"));
 		}
@@ -259,11 +259,38 @@ public class SearchServiceImpl implements SearchService {
 			}
 			String s = "SELECT CUSTOMER_ID FROM `psx_cluster_cross_ref_t`  WHERE cust_unq_id IN ('"
 					+ responseEntity.getApiResults().get(i).get(0) + "')";
-			System.out.println(s);
+			//System.out.println(s);
+			logger.info("query details to fetch customerid "+s);
 			List<Object> CusId = jdbcTemplate.query(s, (rs, rowNum) -> new String(rs.getString("CUSTOMER_ID")));
 			String customerId = CusId.toString().replace("[", "");
 			apiResultList.add(customerId.replace("]", ""));
+			String q1 = "SELECT plan_cd,policy_term,premium_paying_term,sum_assured,commencement_dt,premium_mode_desc,stus_cd,medical_flag,inst_premium,fup_dt FROM  psx_lic_additionl_parameters where policy_no  IN ('" 
+									+ responseEntity.getApiResults().get(i).get(0) + "')";
 
+			logger.info("query details to fetch details  from psx_lic_additionl_parameters: " + q1);
+			PolicyResponseDetails polres_t2 = jdbcTemplate.queryForObject(q1,
+					(rs, num) -> new PolicyResponseDetails(rs.getString("plan_cd"), rs.getString("policy_term"),
+							rs.getString("premium_paying_term"), rs.getString("sum_assured"),
+							rs.getString("commencement_dt"), rs.getString("premium_mode_desc"), rs.getString("stus_cd"),
+							rs.getString("medical_flag"), rs.getString("inst_premium"), rs.getString("fup_dt")));
+
+			PolicyResponseDetails final_polres = new PolicyResponseDetails(polres_t2.getPlan_cd(),
+					polres_t2.getPolicy_term(), polres_t2.getPremium_paying_term(), polres_t2.getSum_assured(),
+					polres_t2.getCommencement_dt(), polres_t2.getPremium_mode_desc(), polres_t2.getStus_cd(),
+					polres_t2.getMedical_flag(), polres_t2.getInst_premium(), polres_t2.getFup_dt());
+
+			apiResultList.add(polres_t2.getPlan_cd());
+			apiResultList.add(polres_t2.getPolicy_term());
+			apiResultList.add(polres_t2.getPremium_paying_term());
+			apiResultList.add(polres_t2.getSum_assured());
+			apiResultList.add(polres_t2.getCommencement_dt());
+			apiResultList.add(polres_t2.getPremium_mode_desc());
+			apiResultList.add(polres_t2.getStus_cd());
+			apiResultList.add(polres_t2.getMedical_flag());
+			apiResultList.add(polres_t2.getInst_premium());
+			apiResultList.add(polres_t2.getFup_dt());
+
+			
 			apiResults.add(apiResultList);
 		}
 		result.add(apiHeaders);
@@ -276,145 +303,155 @@ public class SearchServiceImpl implements SearchService {
 			logger.info("apiResults Size" + apiResults.get(i).size());
 //			for(int j = 0;j<apiResults.get(i).size();j++) {
 //				ServiceResponse res = new ServiceResponse();
-			hash1.put("Policy Number", apiResults.get(i).get(0));
-			hash1.put("Date of Birth", apiResults.get(i).get(1));
-			hash1.put("Name", apiResults.get(i).get(2));
-			hash1.put("Pan", apiResults.get(i).get(3));
-			hash1.put("Bank Account No", apiResults.get(i).get(4));
-			hash1.put("Gender", apiResults.get(i).get(5));
-			hash1.put("Address", apiResults.get(i).get(6));
-			hash1.put("Pincode", apiResults.get(i).get(7));
-			hash1.put("Phone Number", apiResults.get(i).get(8));
-			hash1.put("Email Id", apiResults.get(i).get(9));
-
-			hash1.put("Customer Id", apiResults.get(i).get(10));
-
+			hash1.put("policy_no", apiResults.get(i).get(0));
+			hash1.put("dob", apiResults.get(i).get(1));
+			hash1.put("name", apiResults.get(i).get(2));
+			hash1.put("pan_no", apiResults.get(i).get(3));
+			hash1.put("bank_acc_no", apiResults.get(i).get(4));
+			hash1.put("gender", apiResults.get(i).get(5));
+			hash1.put("address", apiResults.get(i).get(6));
+			hash1.put("pincode", apiResults.get(i).get(7));
+			hash1.put("mobile", apiResults.get(i).get(8));
+			hash1.put("email", apiResults.get(i).get(9));
+			//hash1.put("agency_code", apiResults.get(0).get(11));
+			hash1.put("customer_id", apiResults.get(i).get(10));
+			hash1.put("plan_cd", apiResults.get(i).get(11));
+			hash1.put("policy_term", apiResults.get(i).get(12));
+			hash1.put("premium_paying_term", apiResults.get(i).get(13));
+			hash1.put("sum_assured", apiResults.get(i).get(14));
+			hash1.put("commencement_dt", apiResults.get(i).get(15));
+			hash1.put("premium_mode_desc", apiResults.get(i).get(16));
+			hash1.put("stus_cd", apiResults.get(i).get(17));
+			hash1.put("medical_flag", apiResults.get(i).get(18));
+			hash1.put("inst_premium", apiResults.get(i).get(19));
+			hash1.put("fup_dt", apiResults.get(i).get(20));
+			
 			finalList.add(hash1);
 		}
 
 		responseJson.setMessage(responseEntity.getStatusMessage());
 		responseJson.setData(finalList);
 		return responseJson;
+	}catch (Exception e) {
+		throw new CustomException(e.getMessage());
+	}
 	}
 
-	public ResponseJson<HttpStatus, ?> getcustomerDetails(String custid) throws CustomException, Exception{
+	public ResponseJson<HttpStatus, ?> getcustomerDetails(String custid) throws CustomException, Exception {
 		ResponseJson<HttpStatus, ?> responseJson = new ResponseJson<>();
 
-		try
-		{
-		List<Psx_cluster_cross_ref_t> reqponserefdatat = psxrepo.findByCustomerid(custid);
-		
-		if(reqponserefdatat.isEmpty()||reqponserefdatat==null )
-		{
-			throw new CustomException(messageService.getMessage(ErrorCode.RNF.getMessageKey()));
-		}
+		try {
+			List<Psx_cluster_cross_ref_t> reqponserefdatat = psxrepo.findByCustomerid(custid);
 
-		responseJson.setData1(reqponserefdatat);
-		responseJson.setMessage("message.successful");
-		responseJson.setStatus(HttpStatus.OK);
-		responseJson.setStatusflag(true);
-		}
-		catch(CustomException ce)
-		{
+			if (reqponserefdatat.isEmpty() || reqponserefdatat == null) {
+				throw new CustomException(messageService.getMessage(ErrorCode.RNF.getMessageKey()));
+			}
+
+			responseJson.setData1(reqponserefdatat);
+			responseJson.setMessage("message.successful");
+			responseJson.setStatus(HttpStatus.OK);
+			responseJson.setStatusflag(true);
+		} catch (CustomException ce) {
 			responseJson.setMessage(ce.getMessage());
 			responseJson.setData1(null);
 			responseJson.setStatusflag(false);
 
-		}
-		catch(Exception ce)
-		{
+		} catch (Exception ce) {
 			responseJson.setMessage(ce.getMessage());
-			
+
 			responseJson.setData1(null);
 			responseJson.setStatusflag(false);
-			
+
 		}
 		return responseJson;
 	}
 
-
-
-	public ResponseJson<HttpStatus, ?> getcustomerdetailswithpno(String pno)throws CustomException,NullPointerException,Exception{
+	public ResponseJson<HttpStatus, ?> getcustomerdetailswithpno(String pno)
+			throws CustomException, NullPointerException, Exception {
 		ResponseJson<HttpStatus, ?> responseJson = new ResponseJson<>();
 		try {
-		Psx_cluster_cross_ref_t p = psxrepo.findByCustunqid(pno);
-		
-		logger.info("record of psx_cluster_table with policy no: " + psxrepo.findByCustunqid(pno));
+			Psx_cluster_cross_ref_t p = psxrepo.findByCustunqid(pno);
 
-		if(p==null)
-		{
-			throw new CustomException(messageService.getMessage(ErrorCode.RNF.getMessageKey()));
-		}
-		// Psx_cluster_cross_ref_t p1=(Psx_cluster_cross_ref_t)p.get();
-		
-		responseJson.setData1(p);
-		responseJson.setMessage("psx cluster details for the given pno");
-		responseJson.setStatus(HttpStatus.OK);
-		responseJson.setStatusflag(true);
-		
-		}
-		catch(CustomException ce)
-		{
+			logger.info("record of psx_cluster_table with policy no: " + psxrepo.findByCustunqid(pno));
+
+			if (p == null) {
+				throw new CustomException(messageService.getMessage(ErrorCode.RNF.getMessageKey()));
+			}
+			// Psx_cluster_cross_ref_t p1=(Psx_cluster_cross_ref_t)p.get();
+
+			responseJson.setData1(p);
+			responseJson.setMessage("psx cluster details for the given pno");
+			responseJson.setStatus(HttpStatus.OK);
+			responseJson.setStatusflag(true);
+
+		} catch (CustomException ce) {
 			responseJson.setMessage(ce.getMessage());
-			responseJson.setData1((Psx_cluster_cross_ref_t)psxrepo.findByCustunqid(pno));
-			
+			responseJson.setData1((Psx_cluster_cross_ref_t) psxrepo.findByCustunqid(pno));
+
 			responseJson.setStatusflag(false);
-		}
-		catch(Exception ce)
-		{
+		} catch (Exception ce) {
 			responseJson.setMessage(ce.getMessage());
-			
-			responseJson.setData1((Psx_cluster_cross_ref_t)psxrepo.findByCustunqid(pno));
-			
+
+			responseJson.setData1((Psx_cluster_cross_ref_t) psxrepo.findByCustunqid(pno));
+
 			responseJson.setStatusflag(false);
-			
+
 		}
 		return responseJson;
 	}
 
 	@Override
-	public ResponseJson<HttpStatus, ?> getPolicydetails(String partionNo,String pno) throws CustomException,NullPointerException, Exception {
-		ResponseJson<HttpStatus,?> res=new ResponseJson<>();
-		String q="select NAME,DOB_DOI,RELATION_NAME,PARTITION_NUMBER,CUST_UNQ_ID,gender,Address1,pincode1,phone1,Email_id1,pan,Voter_id,passport from "+partionNo+"_psx_dg_blk_trg where CUST_UNQ_ID='"+pno+"'";
-		
-		logger.info("query details to fetch details  from _psx_dg_blk_trg " +q);
+	public ResponseJson<HttpStatus, ?> getPolicydetails(String partionNo, String pno)
+			throws CustomException, NullPointerException, Exception {
+		ResponseJson<HttpStatus, ?> res = new ResponseJson<>();
+		String q = "select NAME,DOB_DOI,RELATION_NAME,PARTITION_NUMBER,CUST_UNQ_ID,gender,Address1,pincode1,phone1,Email_id1,pan,Voter_id,passport from "
+				+ partionNo + "_psx_dg_blk_trg where CUST_UNQ_ID='" + pno + "'";
+
+		logger.info("query details to fetch details  from _psx_dg_blk_trg " + q);
 		try {
-				/*PolicyDetails pld=jdbcTemplate.queryForObject(q, (rs, rowNum) -> new PolicyDetails(
-					rs.getString("NAME"),rs.getString("DOB_DOI"),rs.getString("RELATION_NAME"),rs.getString("PARTITION_NUMBER"),rs.getString("CUST_UNQ_ID")) );*/
-			  
-				
-		PolicyResponseDetails polres=jdbcTemplate.queryForObject(q, (rs,num)-> new PolicyResponseDetails(rs.getString("NAME"),rs.getString("DOB_DOI"),rs.getString("CUST_UNQ_ID"),
-						 rs.getString("gender"),rs.getString("Address1"),rs.getString("pincode1"),rs.getString("phone1"),rs.getString("Email_id1"),
-						 rs.getString("pan"),rs.getString("Voter_id"),rs.getString("passport")));
-			logger.info("policyresposnedetails :"+polres);
-			
-		String q1="SELECT plan_cd,policy_term,premium_paying_term,sum_assured,commencement_dt,premium_mode_desc,stus_cd,medical_flag,inst_premium,fup_dt FROM  psx_lic_additionl_parameters where policy_no ='"+pno+"'";
-		
-		logger.info("query details to fetch details  from psx_lic_additionl_parameters: "+q1);
-		PolicyResponseDetails polres_t2=jdbcTemplate.queryForObject(q1, (rs,num)-> new PolicyResponseDetails(rs.getString("plan_cd"),rs.getString("policy_term"),rs.getString("premium_paying_term"),
-				 rs.getString("sum_assured"),rs.getString("commencement_dt"),rs.getString("premium_mode_desc"),rs.getString("stus_cd"),rs.getString("medical_flag"),
-				 rs.getString("inst_premium"),rs.getString("fup_dt")));
-				
-		PolicyResponseDetails final_polres=new PolicyResponseDetails(polres_t2.getPlan_cd(),polres_t2.getPolicy_term(),polres_t2.getPremium_paying_term(),polres_t2.getSum_assured(),
-				polres_t2.getCommencement_dt(),polres_t2.getPremium_mode_desc(),polres_t2.getStus_cd(),polres_t2.getMedical_flag(),polres_t2.getInst_premium(),polres_t2.getFup_dt(),
-				polres.getName(),polres.getDob(),polres.getPolicy_no(),polres.getGender(),polres.getAddress(),polres.getPincode(),polres.getMobile(),polres.getEmail(),
-				polres.getPan_no(),polres.getBank_acc_no(),polres.getAgency_code());
-		
-		
-		       res.setData1(final_polres);
-			   res.setMessage("successful");
-			   res.setStatus(HttpStatus.OK);
-			   res.setStatusflag(true);
-	     	}
-		catch(Exception e)
-		{
-			   res.setData1(null);
-			   res.setMessage(e.getMessage());
-			   res.setStatus(HttpStatus.PRECONDITION_FAILED);
-			   res.setStatusflag(false);
+			/*
+			 * PolicyDetails pld=jdbcTemplate.queryForObject(q, (rs, rowNum) -> new
+			 * PolicyDetails(
+			 * rs.getString("NAME"),rs.getString("DOB_DOI"),rs.getString("RELATION_NAME"),rs
+			 * .getString("PARTITION_NUMBER"),rs.getString("CUST_UNQ_ID")) );
+			 */
+
+			PolicyResponseDetails polres = jdbcTemplate.queryForObject(q,
+					(rs, num) -> new PolicyResponseDetails(rs.getString("NAME"), rs.getString("DOB_DOI"),
+							rs.getString("CUST_UNQ_ID"), rs.getString("gender"), rs.getString("Address1"),
+							rs.getString("pincode1"), rs.getString("phone1"), rs.getString("Email_id1"),
+							rs.getString("pan"), rs.getString("Voter_id"), rs.getString("passport")));
+			logger.info("policyresposnedetails :" + polres);
+
+			String q1 = "SELECT plan_cd,policy_term,premium_paying_term,sum_assured,commencement_dt,premium_mode_desc,stus_cd,medical_flag,inst_premium,fup_dt FROM  psx_lic_additionl_parameters where policy_no ='"
+					+ pno + "'";
+
+			logger.info("query details to fetch details  from psx_lic_additionl_parameters: " + q1);
+			PolicyResponseDetails polres_t2 = jdbcTemplate.queryForObject(q1,
+					(rs, num) -> new PolicyResponseDetails(rs.getString("plan_cd"), rs.getString("policy_term"),
+							rs.getString("premium_paying_term"), rs.getString("sum_assured"),
+							rs.getString("commencement_dt"), rs.getString("premium_mode_desc"), rs.getString("stus_cd"),
+							rs.getString("medical_flag"), rs.getString("inst_premium"), rs.getString("fup_dt")));
+
+			PolicyResponseDetails final_polres = new PolicyResponseDetails(polres_t2.getPlan_cd(),
+					polres_t2.getPolicy_term(), polres_t2.getPremium_paying_term(), polres_t2.getSum_assured(),
+					polres_t2.getCommencement_dt(), polres_t2.getPremium_mode_desc(), polres_t2.getStus_cd(),
+					polres_t2.getMedical_flag(), polres_t2.getInst_premium(), polres_t2.getFup_dt(), polres.getName(),
+					polres.getDob(), polres.getPolicy_no(), polres.getGender(), polres.getAddress(),
+					polres.getPincode(), polres.getMobile(), polres.getEmail(), polres.getPan_no(),
+					polres.getBank_acc_no(), polres.getAgency_code());
+
+			res.setData1(final_polres);
+			res.setMessage("successful");
+			res.setStatus(HttpStatus.OK);
+			res.setStatusflag(true);
+		} catch (Exception e) {
+			res.setData1(null);
+			res.setMessage(e.getMessage());
+			res.setStatus(HttpStatus.PRECONDITION_FAILED);
+			res.setStatusflag(false);
 		}
-		
-          
+
 		return res;
 	}
 
