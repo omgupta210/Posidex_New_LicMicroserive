@@ -205,8 +205,8 @@ public class SearchServiceImpl implements SearchService {
 		//ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
 		try {
 			HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
-			requestFactory.setConnectTimeout(1000);
-			requestFactory.setReadTimeout(1000);
+			requestFactory.setConnectTimeout(6000);
+			requestFactory.setReadTimeout(6000);
 		RestTemplate restTemplate = new RestTemplate(requestFactory);
 
 		// logger.info("Sending request body to matching service: " + requestEntity);
@@ -239,7 +239,7 @@ public class SearchServiceImpl implements SearchService {
 
 		ArrayList<String> apiHeaders = new ArrayList<>();
 		ArrayList<List<String>> apiResults = new ArrayList<>();
-		int[] values = { 0, 21, 22, 31, 33, 48, 53, 69, 77, 85 };
+		int[] values = { 0, 21, 22, 31,32, 33, 48, 53, 69, 77, 85 };
 		for (int val : values) {
 			apiHeaders.add(responseEntity.getApiHeader().get(val));
 
@@ -307,24 +307,25 @@ public class SearchServiceImpl implements SearchService {
 			hash1.put("dob", apiResults.get(i).get(1));
 			hash1.put("name", apiResults.get(i).get(2));
 			hash1.put("pan_no", apiResults.get(i).get(3));
-			hash1.put("bank_acc_no", apiResults.get(i).get(4));
-			hash1.put("gender", apiResults.get(i).get(5));
-			hash1.put("address", apiResults.get(i).get(6));
-			hash1.put("pincode", apiResults.get(i).get(7));
-			hash1.put("mobile", apiResults.get(i).get(8));
-			hash1.put("email", apiResults.get(i).get(9));
-			//hash1.put("agency_code", apiResults.get(0).get(11));
-			hash1.put("customer_id", apiResults.get(i).get(10));
-			hash1.put("plan_cd", apiResults.get(i).get(11));
-			hash1.put("policy_term", apiResults.get(i).get(12));
-			hash1.put("premium_paying_term", apiResults.get(i).get(13));
-			hash1.put("sum_assured", apiResults.get(i).get(14));
-			hash1.put("commencement_dt", apiResults.get(i).get(15));
-			hash1.put("premium_mode_desc", apiResults.get(i).get(16));
-			hash1.put("stus_cd", apiResults.get(i).get(17));
-			hash1.put("medical_flag", apiResults.get(i).get(18));
-			hash1.put("inst_premium", apiResults.get(i).get(19));
-			hash1.put("fup_dt", apiResults.get(i).get(20));
+			hash1.put("agency_code", apiResults.get(0).get(4));
+			hash1.put("bank_acc_no", apiResults.get(i).get(5));
+			hash1.put("gender", apiResults.get(i).get(6));
+			hash1.put("address", apiResults.get(i).get(7));
+			hash1.put("pincode", apiResults.get(i).get(8));
+			hash1.put("mobile", apiResults.get(i).get(9));
+			hash1.put("email", apiResults.get(i).get(10));
+			
+			hash1.put("customer_id", apiResults.get(i).get(11));
+			hash1.put("plan_cd", apiResults.get(i).get(12));
+			hash1.put("policy_term", apiResults.get(i).get(13));
+			hash1.put("premium_paying_term", apiResults.get(i).get(14));
+			hash1.put("sum_assured", apiResults.get(i).get(15));
+			hash1.put("commencement_dt", apiResults.get(i).get(16));
+			hash1.put("premium_mode_desc", apiResults.get(i).get(17));
+			hash1.put("stus_cd", apiResults.get(i).get(18));
+			hash1.put("medical_flag", apiResults.get(i).get(19));
+			hash1.put("inst_premium", apiResults.get(i).get(20));
+			hash1.put("fup_dt", apiResults.get(i).get(21));
 			
 			finalList.add(hash1);
 		}
