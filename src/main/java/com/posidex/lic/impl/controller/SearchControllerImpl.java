@@ -11,6 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,7 +26,11 @@ import com.posidex.lic.api.service.MessageService;
 import com.posidex.lic.api.service.SearchService;
 import com.posidex.lic.entity.Psx_cluster_cross_ref_t;
 import com.posidex.lic.exception.CustomException;
+import com.posidex.lic.impl.service.JWTUtils;
+import com.posidex.lic.impl.service.MyUserDetailsService;
 import com.posidex.lic.mapper.PloicyMapper;
+import com.posidex.lic.model.AuthenticationRequest;
+import com.posidex.lic.model.AuthenticationResponse;
 import com.posidex.lic.model.CustRequestId;
 import com.posidex.lic.model.CustomerPolicyinfo;
 import com.posidex.lic.model.ErrorCode;
@@ -37,6 +45,15 @@ public class SearchControllerImpl implements SearchController {
 
 	@Autowired
 	private PloicyMapper plc;
+	
+	@Autowired
+	private AuthenticationManager aumanager;
+	
+	@Autowired
+	private MyUserDetailsService UserDetailsService;
+	
+	@Autowired
+	private JWTUtils jwttokenutil;
 
 	@Autowired
 	private SearchService service;
@@ -357,5 +374,33 @@ public class SearchControllerImpl implements SearchController {
 	}
 
 	
+	@PostMapping("generatetoken")
+	public 	ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticaterequest) throws Exception
+	{
+	
+			try {
+			aumanager.authenticate(new UsernamePasswordAuthenticationToken(authenticaterequest.getUsename(),authenticaterequest.getPassword()));
+			
+			final UserDetails userdetails=UserDetailsService.loadUserByUsername(authenticaterequest.getUsename());
+			final String jwt=jwttokenutil.generateToken(userdetails);
+			return ResponseEntity.ok(new AuthenticationResponse(jwt));
+			}
+			catch(Exception e)
+		{
+			
+
+			Map<String ,String> hmap=new HashMap<>();
+			hmap.put("response", messageService.getMessage(ErrorCode.UAP.getMessageKey()));
+			return ResponseEntity.ok(hmap);
+		
+		}
+		
+		
+		
+		
+		
+	
+
+	}
 
 }

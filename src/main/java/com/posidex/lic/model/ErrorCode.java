@@ -6,7 +6,8 @@ public enum ErrorCode {
 	PIR("Request.policyno.empty","policy no should not be empty"),
 	CIR("Request.cutomerid.empty","customerid should not be empty"),
 	RNF("Record.Not.Found","Record not found"),
-	WDS("Wrong.Data.Stored","Please check the record store in the database");
+	WDS("Wrong.Data.Stored","Please check the record store in the database"),
+	UAP("unauthorized","Invalid username and password");
 
 	
 
