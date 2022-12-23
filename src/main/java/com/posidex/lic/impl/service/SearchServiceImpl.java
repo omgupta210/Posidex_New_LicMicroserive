@@ -262,22 +262,32 @@ public class SearchServiceImpl implements SearchService {
 			//System.out.println(s);
 			logger.info("query details to fetch customerid "+s);
 			List<Object> CusId = jdbcTemplate.query(s, (rs, rowNum) -> new String(rs.getString("CUSTOMER_ID")));
+			if(CusId.isEmpty()) {
+				throw new CustomException("customer id not present in crt table");
+			}
 			String customerId = CusId.toString().replace("[", "");
 			apiResultList.add(customerId.replace("]", ""));
+			logger.info("result custid"+CusId);
 			String q1 = "SELECT plan_cd,policy_term,premium_paying_term,sum_assured,commencement_dt,premium_mode_desc,stus_cd,medical_flag,inst_premium,fup_dt FROM  psx_lic_additionl_parameters where policy_no  IN ('" 
 									+ responseEntity.getApiResults().get(i).get(0) + "')";
 
 			logger.info("query details to fetch details  from psx_lic_additionl_parameters: " + q1);
-			PolicyResponseDetails polres_t2 = jdbcTemplate.queryForObject(q1,
+			PolicyResponseDetails polres_t2 = new PolicyResponseDetails();
+			try {
+				 polres_t2 = jdbcTemplate.queryForObject(q1,
 					(rs, num) -> new PolicyResponseDetails(rs.getString("plan_cd"), rs.getString("policy_term"),
 							rs.getString("premium_paying_term"), rs.getString("sum_assured"),
 							rs.getString("commencement_dt"), rs.getString("premium_mode_desc"), rs.getString("stus_cd"),
 							rs.getString("medical_flag"), rs.getString("inst_premium"), rs.getString("fup_dt")));
-
-			PolicyResponseDetails final_polres = new PolicyResponseDetails(polres_t2.getPlan_cd(),
-					polres_t2.getPolicy_term(), polres_t2.getPremium_paying_term(), polres_t2.getSum_assured(),
-					polres_t2.getCommencement_dt(), polres_t2.getPremium_mode_desc(), polres_t2.getStus_cd(),
-					polres_t2.getMedical_flag(), polres_t2.getInst_premium(), polres_t2.getFup_dt());
+			}
+			catch (Exception e) {
+				throw new CustomException("record not found in additional parameters table");
+			}
+			//logger.info("polres_t2.getPlan_cd()"+polres_t2.);
+//			PolicyResponseDetails final_polres = new PolicyResponseDetails(polres_t2.getPlan_cd(),
+//					polres_t2.getPolicy_term(), polres_t2.getPremium_paying_term(), polres_t2.getSum_assured(),
+//					polres_t2.getCommencement_dt(), polres_t2.getPremium_mode_desc(), polres_t2.getStus_cd(),
+//					polres_t2.getMedical_flag(), polres_t2.getInst_premium(), polres_t2.getFup_dt());
 
 			apiResultList.add(polres_t2.getPlan_cd());
 			apiResultList.add(polres_t2.getPolicy_term());
@@ -296,7 +306,7 @@ public class SearchServiceImpl implements SearchService {
 		result.add(apiHeaders);
 		result.addAll(apiResults);
 		List<Map<String, String>> finalList = new ArrayList<Map<String, String>>();
-
+		//logger.info("responseentiry size"+responseEntity.getRetValue().getMatchCount());
 		for (int i = 0; i < responseEntity.getRetValue().getMatchCount(); i++) {
 			Map<String, String> hash1 = new HashMap<String, String>();
 

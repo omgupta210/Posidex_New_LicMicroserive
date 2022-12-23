@@ -51,11 +51,12 @@ public class ConfigureSpringSecurity extends WebSecurityConfigurerAdapter{
 	protected void configure(HttpSecurity http) throws Exception {
 	
 		
-		http.csrf().disable().authorizeRequests().antMatchers("/psx/restservice/licms/generatetoken").permitAll().anyRequest().authenticated().and().sessionManagement()
-		.sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().exceptionHandling().authenticationEntryPoint(entrypoint);
+		http.csrf().disable().authorizeRequests().antMatchers("**").permitAll();
+//	.anyRequest().authenticated().and().sessionManagement()
+//		.sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().exceptionHandling().authenticationEntryPoint(entrypoint);
 		
 		//http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-		http.addFilterAt(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+		//http.addFilterAt(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 		
 	
 		/*catch(Exception e)
