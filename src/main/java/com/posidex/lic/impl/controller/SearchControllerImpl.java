@@ -169,7 +169,7 @@ public class SearchControllerImpl implements SearchController {
 			}
 			logger.info("Records from the PSX_cross_ref_table for custmerid: " + customerid + " : " + responsejson);
 			
-			@SuppressWarnings("unchecked")
+			//@SuppressWarnings("unchecked")
 			List<Psx_cluster_cross_ref_t> t = (List<Psx_cluster_cross_ref_t>) responsejson.getData();
 
 			for (Psx_cluster_cross_ref_t m : t) {
@@ -187,13 +187,14 @@ public class SearchControllerImpl implements SearchController {
 			for (CustomerPolicyinfo temp : p) {
 
 				responsejson = service.getPolicydetails(partition, temp.getcust_unq_id());
+				logger.info("Policyresposne details of policy no:"+responsejson);
 				if (!responsejson.isStatusflag() || responsejson.getData() == null) {
 					throw new CustomException(messageService.getMessage(ErrorCode.RNF.getMessageKey()));
 				}
 
 				PolicyResponseDetails ptemp = (PolicyResponseDetails) responsejson.getData();
 				
-				logger.info("Policyresposne details of policy no:"+ptemp.getPolicy_no()+" : "+ptemp);
+				
 				
 				ptemp.setCustomer_id(customerid.getCustomerid());
 				policydata.add(ptemp);
